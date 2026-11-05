@@ -470,8 +470,9 @@ bool ZombatarWidget::CanSaveNewHead() const
 
 void ZombatarWidget::ShowMaxHeadsMessage()
 {
-	mApp->LawnMessageBox(DIALOG_MESSAGE, "Zombatar Limit Reached",
-		"This profile already has the maximum number of saved Zombatars.", "[DIALOG_BUTTON_OK]", "", Dialog::BUTTONS_FOOTER);
+	std::string aHeader = mApp->GetString("ZOMBATAR_LIMIT_HEADER", "Zombatar Limit Reached");
+	std::string aBody = mApp->GetString("ZOMBATAR_LIMIT_BODY", "This profile already has the maximum number of saved Zombatars.");
+	mApp->LawnMessageBox(DIALOG_MESSAGE, aHeader.c_str(), aBody.c_str(), "[DIALOG_BUTTON_OK]", "", Dialog::BUTTONS_FOOTER);
 }
 
 void ZombatarWidget::ClampCurrentIndex()

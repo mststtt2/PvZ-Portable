@@ -608,9 +608,10 @@ void AwardScreen::DrawAchievements(Graphics* g) {
 	PvzpDrawString(g, mApp->GetString("ACHIEVEMENTS_TITLE", "ACHIEVEMENTS"), BOARD_WIDTH / 2, 58, FONT_HOUSEOFTERROR28, Color(220, 220, 220), DS_ALIGN_CENTER);
 
 	for (size_t i = 0; i < mAchievementItems.size(); i++) {
-		std::string aAchievementName = std::string(gAchievementList[mAchievementItems[i].mId].name);
-		std::string aAchievementDesc = std::string(gAchievementList[mAchievementItems[i].mId].description);
-		aAchievementName.append(" Earned!");
+		const AchievementItem& anItem = gAchievementList[mAchievementItems[i].mId];
+		std::string aLocalizedName = mApp->GetString(anItem.name, anItem.name);
+		std::string aAchievementName = mApp->GetFormattedString("%s Earned!", "%s Earned!", aLocalizedName.c_str());
+		std::string aAchievementDesc = mApp->GetString(anItem.description, anItem.description);
 
 		Rect aSrcRect = Rect(70 * (mAchievementItems[i].mId % 7), 70 * (mAchievementItems[i].mId / 7), 70, 70);
 		Rect aDestRect = Rect(220, mAchievementItems[i].mY + 10, 70, 70);

@@ -1,0 +1,69 @@
+name: iOS build (ru)
+
+on:
+  push:
+    branches: [ "ru-strings" ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build for iOS (arm64)
+    runs-on: macos-latest
+    env:
+      IOS_DEPLOY_TARGET: "16.4"
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Get toolchain ID for cache key
+      run: |
+        CLANG_VER=$(clang --version | head -1 | sed -nE 's/.*version ([0-9.]+).*/\1/p')
+        echo "VCPKG_TC=clang-${CLANG_VER:-unknown}" >> "$GITHUB_ENV"
+
+    - name: Restore vcpkg binary cache
+      uses: actions/cache@v6
+      with:
+        path: vcpkg-cache
+        key: vcpkg-ios-${{ env.VCPKG_TC }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'CMake/triplets/arm64-ios.cmake') }}
+        restore-keys: |
+          vcpkg-ios-${{ env.VCPKG_TC }}-
+          vcpkg-ios-
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgJsonGlob: vcpkg.json
+
+    - name: Build PvZ-Portable for iOS
+      run: |
+        BUILD_DIR=build-ios
+        cmake -B $BUILD_DIR \
+          -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
+          -DVCPKG_OVERLAY_TRIPLETS=$GITHUB_WORKSPACE/CMake/triplets \
+          -DVCPKG_TARGET_TRIPLET=arm64-ios \
+          -DCMAKE_SYSTEM_NAME=iOS \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=$IOS_DEPLOY_TARGET \
+          -DCMAKE_OSX_ARCHITECTURES=arm64 \
+          -DCMAKE_BUILD_TYPE=Release \
+          -G Xcode
+        cmake --build $BUILD_DIR --config Release -- \
+          -sdk iphoneos \
+          CODE_SIGN_IDENTITY="-" \
+          CODE_SIGNING_ALLOWED=NO
+
+    - name: Create unsigned IPA
+      run: |
+        APP_PATH=$(find build-ios -name "pvz-portable.app" -path "*Release*" | head -1)
+        mkdir -p dist/Payload
+        cp -R "$APP_PATH" dist/Payload/
+        cd dist
+        zip -r -y pvz-portable-ios-arm64-ru.ipa Payload/
+        rm -rf Payload
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: pvz-portable-ios-ru
+        path: dist/

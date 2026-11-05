@@ -479,7 +479,7 @@ void GameSelector::SyncProfile(bool theShowLoading)
 	{
 		mLoading = true;
 
-		mApp->DoDialog(Dialogs::DIALOG_MESSAGE, true, "Loading...", "", "", Dialog::BUTTONS_NONE);
+		mApp->DoDialog(Dialogs::DIALOG_MESSAGE, true, mApp->GetString("LOADING_PROFILE", "Loading..."), "", "", Dialog::BUTTONS_NONE);
 		mApp->DrawDirtyStuff();
 		mApp->PreloadForUser();
 		mApp->KillDialog(Dialogs::DIALOG_MESSAGE);
