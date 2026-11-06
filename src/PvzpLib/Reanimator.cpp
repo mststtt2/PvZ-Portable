@@ -32,6 +32,7 @@
 #include "graphics/Font.h"
 #include "misc/PerfTimer.h"
 #include "graphics/MemoryImage.h"
+#include "imagelib/ImageLib.h"
 #include <algorithm>
 #include <format>
 
@@ -361,6 +362,10 @@ void ReanimationCreateAtlas(ReanimatorDefinition* theDefinition, ReanimationType
 {
 	const ReanimationParams& aParam = gReanimationParamArray[theReanimationType];
 	if (theDefinition->mReanimAtlas != nullptr || TestBit(aParam.mReanimParamFlags, ReanimFlags::REANIM_NO_ATLAS))
+		return;
+	// The atlas is built from the normal-resolution bits, which would drop HD replacement textures:
+	// with HD data present, draw every reanim part from its own (HD) texture instead.
+	if (ImageLib::HDResourcesAvailable())
 		return;
 
 	PerfTimer aTimer;
