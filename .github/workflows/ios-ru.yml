@@ -8,7 +8,7 @@ on:
 jobs:
   build-ios:
     name: Build for iOS (arm64)
-    runs-on: macos-latest
+    runs-on: macos-15-intel  # arm64 macOS runners are often unavailable; Intel Xcode builds iOS arm64 just as well
     env:
       IOS_DEPLOY_TARGET: "16.4"
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
