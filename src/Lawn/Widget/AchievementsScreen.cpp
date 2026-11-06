@@ -19,6 +19,7 @@
  * along with PvZ-Portable. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "../../PvzpLib/PvzpSteam.h"
 #include "AchievementsScreen.h"
 #include "../Board.h"
 #include "GameButton.h"
@@ -227,6 +228,7 @@ void ReportAchievement::GiveAchievement(LawnApp* theApp, int theAchievement, boo
 		return;
 
 	theApp->mPlayerInfo->mEarnedAchievements[theAchievement] = true;
+	PvzpSteam::UnlockAchievement(theAchievement);
 
 	if (!theForceGive)
 		return;
@@ -244,6 +246,10 @@ void ReportAchievement::GiveAchievement(LawnApp* theApp, int theAchievement, boo
 void ReportAchievement::AchievementInitForPlayer(LawnApp* theApp) {
 	if (!theApp || !theApp->mPlayerInfo)
 		return;
+	// Push achievements already earned in this profile to Steam (no-op without the Steam DLL)
+	for (int i = 0; i < MAX_ACHIEVEMENTS; i++)
+		if (theApp->mPlayerInfo->mEarnedAchievements[i])
+			PvzpSteam::UnlockAchievement(i);
 	// @windowslover1234, for whatever reason, these three checks cause crashes on Windows, but not Linux.
 	if (theApp->HasFinishedAdventure()) {
 		GiveAchievement(theApp, AchievementId::HomeSecurity, true);

@@ -38,6 +38,7 @@
 #include "Lawn/System/Music.h"
 #include "Lawn/System/SaveGame.h"
 #include "PvzpLib/PvzpDebug.h"
+#include "PvzpLib/PvzpSteam.h"
 #include "PvzpLib/PvzpFoley.h"
 #include "PvzpLib/Attachment.h"
 #include "Lawn/System/PlayerInfo.h"
@@ -226,6 +227,8 @@ LawnApp::~LawnApp()
 
 void LawnApp::Shutdown()
 {
+	PvzpSteam::Shutdown();
+
 	if (!mLoadingThreadCompleted)
 	{
 		mLoadingFailed = true;
@@ -1148,6 +1151,7 @@ void LawnApp::ShowResourceError(bool doExit)
 void LawnApp::Init()
 {
 	DoParseCmdLine();
+	PvzpSteam::Init();
 	if (!mCheatKeys)
 	{
 		mOnlyAllowOneCopyToRun = true;
@@ -1550,6 +1554,8 @@ void LawnApp::UpdatePlayTimeStats()
 
 void LawnApp::UpdateFrames()
 {
+	PvzpSteam::RunCallbacks();
+
 	if ((!mActive || mMinimized) && mBoard)
 	{
 		mBoard->ResetFPSStats();
