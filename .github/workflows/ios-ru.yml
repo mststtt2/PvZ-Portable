@@ -1,4 +1,4 @@
-name: iOS build (ru)
+name: Build (ru, iOS + Windows)
 
 on:
   push:
@@ -66,4 +66,54 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: pvz-portable-ios-ru
+        path: dist/
+
+  build-windows:
+    name: Build for Windows (MSVC x64)
+    runs-on: windows-latest
+    env:
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Get toolchain ID for cache key
+      shell: pwsh
+      run: |
+        $tc = $env:VCToolsVersion
+        if (-not $tc) { $tc = "unknown" }
+        echo "VCPKG_TC=msvc-$tc" >> $env:GITHUB_ENV
+
+    - name: Restore vcpkg binary cache
+      uses: actions/cache@v6
+      with:
+        path: vcpkg-cache
+        key: vcpkg-windows-x64-${{ env.VCPKG_TC }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+        restore-keys: |
+          vcpkg-windows-x64-${{ env.VCPKG_TC }}-
+          vcpkg-windows-x64-
+
+    - name: Install Ninja
+      run: choco install ninja -y
+
+    - name: Setup vcpkg (manifest mode)
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgJsonGlob: vcpkg.json
+
+    - name: Compile PvZ-Portable for Windows (MSVC)
+      shell: pwsh
+      run: |
+        cmake -G "Ninja" -B build -DCMAKE_BUILD_TYPE=Release -DCONSOLE=OFF -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
+        cmake --build build
+        New-Item -ItemType Directory -Force -Path dist | Out-Null
+        Copy-Item build/pvz-portable.exe dist/pvz-portable-ru-hd.exe
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: pvz-portable-windows-ru
         path: dist/

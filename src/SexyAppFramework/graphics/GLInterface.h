@@ -189,6 +189,7 @@ public:
 	int						mDisplayHeight;
 
 	Rect					mPresentationRect;
+	int						mHiResScale = 1;	// ceil(drawable pixels / logical width), 1..3
 	int						mRefreshRate;
 	int						mMillisecondsPerFrame;
 

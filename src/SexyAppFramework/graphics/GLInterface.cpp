@@ -32,6 +32,7 @@
 #include "graphics/Graphics.h"
 #include "graphics/MemoryImage.h"
 #include "SexyAppBase.h"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
@@ -1269,6 +1270,7 @@ void GLInterface::UpdateViewport()
 
 	glViewport(vx, vy, vw, vh);
 	mPresentationRect = Rect(vx, vy, vw, vh);
+	mHiResScale = std::clamp((vw + std::max(mWidth, 1) - 1) / std::max(mWidth, 1), 1, 3);
 
 #ifndef __SWITCH__
 	// Mouse/touch events and SDL_SetTextInputRect use window coordinates, which differ from

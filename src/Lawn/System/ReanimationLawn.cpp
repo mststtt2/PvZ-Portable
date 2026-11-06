@@ -28,15 +28,18 @@
 #include "../../PvzpLib/Reanimator.h"
 #include "graphics/MemoryImage.h"
 
+#include <algorithm>
+#include "graphics/GLInterface.h"
+#include "SexyAppBase.h"
+
 // Cached plant/zombie/mower frames (seed packets, almanac, ...) are pre-rendered into bitmaps.
-// On high-DPI mobile screens render them at a higher resolution and draw them scaled down,
-// otherwise they are upscaled ~2.7x on an iPad and look blurry.
-#if defined(__IPHONEOS__) || defined(__ANDROID__)
-static constexpr int kCacheScale = 3;
-#else
-static constexpr int kCacheScale = 1;
-#endif
-static constexpr float kCacheScaleF = static_cast<float>(kCacheScale);
+// Render them at the current display scale (e.g. 3 on an iPad, 2 on a fullscreen 1080p monitor)
+// and draw them scaled down; the draw scale is derived from the cached image size.
+static int CurrentCacheScale()
+{
+	Sexy::GLInterface* aGL = Sexy::gSexyAppBase ? Sexy::gSexyAppBase->mGLInterface.get() : nullptr;
+	return aGL ? std::clamp(aGL->mHiResScale, 1, 3) : 1;
+}
 
 void ReanimatorCache::UpdateReanimationForVariation(Reanimation* theReanim, DrawVariation theDrawVariation)
 {
@@ -162,6 +165,8 @@ void ReanimatorCache::GetPlantImageSize(SeedType theSeedType, int& theOffsetX, i
 
 std::unique_ptr<MemoryImage> ReanimatorCache::MakeCachedMowerFrame(LawnMowerType theMowerType)
 {
+	const int kCacheScale = CurrentCacheScale();
+	const float kCacheScaleF = static_cast<float>(kCacheScale);
 	std::unique_ptr<MemoryImage> aImage;
 
 	switch (theMowerType)
@@ -216,6 +221,8 @@ std::unique_ptr<MemoryImage> ReanimatorCache::MakeCachedMowerFrame(LawnMowerType
 
 std::unique_ptr<MemoryImage> ReanimatorCache::MakeCachedPlantFrame(SeedType theSeedType, DrawVariation theDrawVariation)
 {
+	const int kCacheScale = CurrentCacheScale();
+	const float kCacheScaleF = static_cast<float>(kCacheScale);
 	int aOffsetX, aOffsetY, aWidth, aHeight;
 	GetPlantImageSize(theSeedType, aOffsetX, aOffsetY, aWidth, aHeight);
 	auto aMemoryImage = MakeBlankMemoryImage(aWidth * kCacheScale, aHeight * kCacheScale);
@@ -272,6 +279,8 @@ std::unique_ptr<MemoryImage> ReanimatorCache::MakeCachedPlantFrame(SeedType theS
 
 std::unique_ptr<MemoryImage> ReanimatorCache::MakeCachedZombieFrame(ZombieType theZombieType)
 {
+	const int kCacheScale = CurrentCacheScale();
+	const float kCacheScaleF = static_cast<float>(kCacheScale);
 	auto aMemoryImage = MakeBlankMemoryImage(200 * kCacheScale, 210 * kCacheScale);
 	Graphics aMemoryGraphics(aMemoryImage.get());
 	aMemoryGraphics.SetLinearBlend(true);
@@ -410,7 +419,8 @@ void ReanimatorCache::DrawCachedPlant(Graphics* g, float thePosX, float thePosY,
 
 	int aOffsetX, aOffsetY, aWidth, aHeight;
 	GetPlantImageSize(theSeedType, aOffsetX, aOffsetY, aWidth, aHeight);
-	if (kCacheScale == 1 && !mApp->Is3DAccelerated() && g->mScaleX == 1.0f && g->mScaleY == 1.0f)
+	const float kCacheScaleF = aWidth > 0 ? static_cast<float>(aImage->mWidth) / aWidth : 1.0f;
+	if (kCacheScaleF == 1.0f && !mApp->Is3DAccelerated() && g->mScaleX == 1.0f && g->mScaleY == 1.0f)
 		g->DrawImage(aImage, thePosX + aOffsetX, thePosY + aOffsetY);
 	else
 		PvzpDrawImageScaledF(g, aImage, thePosX + (aOffsetX * g->mScaleX), thePosY + (aOffsetY * g->mScaleY), g->mScaleX / kCacheScaleF, g->mScaleY / kCacheScaleF);
@@ -422,6 +432,7 @@ void ReanimatorCache::DrawCachedMower(Graphics* g, float thePosX, float thePosY,
 
 	if (mLawnMowers[theMowerType] == nullptr)
 		mLawnMowers[theMowerType] = MakeCachedMowerFrame(theMowerType);
+	const float kCacheScaleF = mLawnMowers[theMowerType]->mWidth / 90.0f;
 	PvzpDrawImageScaledF(g, mLawnMowers[theMowerType].get(), thePosX - 20.0f, thePosY, g->mScaleX / kCacheScaleF, g->mScaleY / kCacheScaleF);
 }
 
@@ -431,5 +442,6 @@ void ReanimatorCache::DrawCachedZombie(Graphics* g, float thePosX, float thePosY
 
 	if (mZombieImages[theZombieType] == nullptr)
 		mZombieImages[theZombieType] = MakeCachedZombieFrame(theZombieType);
+	const float kCacheScaleF = mZombieImages[theZombieType]->mWidth / 200.0f;
 	PvzpDrawImageScaledF(g, mZombieImages[theZombieType].get(), thePosX, thePosY, g->mScaleX / kCacheScaleF, g->mScaleY / kCacheScaleF);
 }
