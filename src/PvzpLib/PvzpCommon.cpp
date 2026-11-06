@@ -661,7 +661,11 @@ void PvzpSandImageIfNeeded(Image* theImage)
 	/*if (TestBit(aImage->mRenderFlags, RENDERIMAGEFLAG_SANDING))*/ // UB shift by a billion
 	if (aImage->mRenderFlags & RENDERIMAGEFLAG_SANDING)
 	{
-		FixPixelsOnAlphaEdgeForBlending(theImage);
+		// HD replacements already have their transparent edge colours fixed when they were built.
+		// Sanding the normal bits here would bump mBitsChangedCount and throw the HD texture away.
+		const bool aHasHD = aImage->HasValidHDImage() || (aImage->mRenderData != nullptr && aImage->mRenderData->mScale != 1);
+		if (!aHasHD)
+			FixPixelsOnAlphaEdgeForBlending(theImage);
 		((MemoryImage*)theImage)->mRenderFlags &= ~RENDERIMAGEFLAG_SANDING; // Unset the sanding flag
 		//SetBit((unsigned int&)aImage->mRenderFlags, RENDERIMAGEFLAG_SANDING, false);  // Also UB!?!
 	}
