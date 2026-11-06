@@ -1249,6 +1249,19 @@ void GLInterface::UpdateViewport()
 
 	glViewport(vx, vy, vw, vh);
 	mPresentationRect = Rect(vx, vy, vw, vh);
+
+#ifndef __SWITCH__
+	// Mouse/touch events and SDL_SetTextInputRect use window coordinates, which differ from
+	// drawable pixels on high-DPI displays (e.g. iOS Retina). Keep mPresentationRect in window units.
+	int aWinW = 0, aWinH = 0;
+	SDL_GetWindowSize((SDL_Window*)mApp->mWindow, &aWinW, &aWinH);
+	if (aWinW > 0 && aWinH > 0 && width > 0 && height > 0 && (aWinW != width || aWinH != height))
+	{
+		mPresentationRect = Rect(
+			vx * aWinW / width, vy * aWinH / height,
+			vw * aWinW / width, vh * aWinH / height);
+	}
+#endif
 }
 
 int GLInterface::Init(bool IsWindowed)
