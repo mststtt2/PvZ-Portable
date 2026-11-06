@@ -723,20 +723,30 @@ void TextureData::CreateTextures(MemoryImage *theImage)
 	if (aFormat == PixelFormat_A8R8G8B8 && !(gSupportedPixelFormats & PixelFormat_A8R8G8B8))
 		aFormat = PixelFormat_A4R4G4B4;
 
+	// Use the 2x HD replacement (if any) as the texture source; geometry stays in image pixels
+	MemoryImage* aSrc = theImage;
+	int aScale = 1;
+	if (theImage->HasValidHDImage())
+	{
+		aSrc = theImage->mHDImage.get();
+		aScale = MemoryImage::HD_SCALE;
+	}
+
 	bool createTextures = false;
 	if (mWidth != theImage->mWidth || mHeight != theImage->mHeight
-		|| aFormat != mPixelFormat
+		|| aFormat != mPixelFormat || aScale != mScale
 		|| (theImage->mRenderFlags & RenderImageFlag_TextureMask) != mImageFlags)
 	{
 		ReleaseTextures();
 		mPixelFormat = aFormat;
 		mImageFlags  = theImage->mRenderFlags & RenderImageFlag_TextureMask;
-		CreateTextureDimensions(theImage);
+		mScale = aScale;
+		CreateTextureDimensions(aSrc);
 		createTextures = true;
 	}
 
-	int aHeight = theImage->GetHeight();
-	int aWidth  = theImage->GetWidth();
+	int aHeight = aSrc->GetHeight();
+	int aWidth  = aSrc->GetWidth();
 	int fmtSize = (aFormat == PixelFormat_R5G6B5 || aFormat == PixelFormat_A4R4G4B4) ? 2 : 4;
 
 	int idx = 0;
@@ -751,7 +761,7 @@ void TextureData::CreateTextures(MemoryImage *theImage)
 				mTexMemSize += piece.mWidth * piece.mHeight * fmtSize;
 			}
 			glBindTexture(GL_TEXTURE_2D, piece.mTexture);
-			CopyImageToTexture(theImage, x, y, piece.mWidth, piece.mHeight, aFormat, createTextures);
+			CopyImageToTexture(aSrc, x, y, piece.mWidth, piece.mHeight, aFormat, createTextures);
 		}
 	}
 
@@ -760,6 +770,10 @@ void TextureData::CreateTextures(MemoryImage *theImage)
 	mBitsChangedCount = theImage->mBitsChangedCount;
 	mPixelFormat = aFormat;
 	gAppliedTextureValid = false;
+
+	// The HD pixels live on the GPU now; free the CPU copy (falls back to normal resolution if re-uploaded)
+	if (aScale != 1)
+		theImage->mHDImage.reset();
 }
 
 void TextureData::CheckCreateTextures(MemoryImage *theImage)
@@ -781,14 +795,17 @@ GLuint& TextureData::GetTexture(int x, int y, int &width, int &height,
 								float &u1, float &v1, float &u2, float &v2,
 								float *uvBounds)
 {
+	// Callers work in image pixels; pieces are in texels (mScale texels per pixel for HD textures)
+	x *= mScale; y *= mScale; width *= mScale; height *= mScale;
+
 	int tx = x / mTexPieceWidth, ty = y / mTexPieceHeight;
 	TextureDataPiece &p = mTextures[ty * mTexVecWidth + tx];
 
 	int left = x % mTexPieceWidth, top = y % mTexPieceHeight;
 	int right  = std::min(left + width,  p.mWidth);
 	int bottom = std::min(top  + height, p.mHeight);
-	width  = right - left;
-	height = bottom - top;
+	width  = (right - left) / mScale;
+	height = (bottom - top) / mScale;
 
 	u1 = (float)left  / p.mWidth;  v1 = (float)top    / p.mHeight;
 	u2 = (float)right / p.mWidth;  v2 = (float)bottom / p.mHeight;
@@ -805,6 +822,9 @@ GLuint& TextureData::GetTextureF(float x, float y, float &width, float &height,
 								 float &u1, float &v1, float &u2, float &v2,
 								 float *uvBounds)
 {
+	const float aScale = (float)mScale;
+	x *= aScale; y *= aScale; width *= aScale; height *= aScale;
+
 	int tx = (int)(x / mTexPieceWidth), ty = (int)(y / mTexPieceHeight);
 	TextureDataPiece &p = mTextures[ty * mTexVecWidth + tx];
 
@@ -812,8 +832,8 @@ GLuint& TextureData::GetTextureF(float x, float y, float &width, float &height,
 	float top    = y - ty * mTexPieceHeight;
 	float right  = std::min(left + width,  (float)p.mWidth);
 	float bottom = std::min(top  + height, (float)p.mHeight);
-	width  = right - left;
-	height = bottom - top;
+	width  = (right - left) / aScale;
+	height = (bottom - top) / aScale;
 
 	u1 = left   / p.mWidth;  v1 = top    / p.mHeight;
 	u2 = right  / p.mWidth;  v2 = bottom / p.mHeight;
@@ -1402,6 +1422,7 @@ bool GLInterface::RecoverBits(MemoryImage* theImage)
 	if (!theImage->mRenderData) return false;
 
 	TextureData* data = theImage->mRenderData;
+	if (data->mScale != 1) return false;	// HD texture: texels don't map 1:1 to image pixels; reload from file instead
 	if (data->mBitsChangedCount != theImage->mBitsChangedCount) return false;
 	if (data->mPixelFormat != PixelFormat_A8R8G8B8 && !theImage->mFilePath.empty()) return false;
 

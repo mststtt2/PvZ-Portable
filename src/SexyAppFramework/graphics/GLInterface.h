@@ -159,6 +159,7 @@ public:
 	float mMaxTotalU, mMaxTotalV;
 	PixelFormat mPixelFormat;
 	int mImageFlags;
+	int mScale = 1;	// texels per image pixel (2 when an HD replacement texture is uploaded)
 
 	TextureData();
 	~TextureData();

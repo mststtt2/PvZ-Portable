@@ -3573,6 +3573,7 @@ Sexy::GLImage* SexyAppBase::GetImage(const std::string& theFileName, bool commit
 	GLImage* anImage = new GLImage(mGLInterface.get());
 	anImage->SetBits(aLoadedImage->GetBits(), aLoadedImage->GetWidth(), aLoadedImage->GetHeight(), commitBits);
 	anImage->mFilePath = theFileName;
+	anImage->AttachHDImage(theFileName);
 #ifdef LOW_MEMORY
 	anImage->mPurgeBits = true;
 #endif

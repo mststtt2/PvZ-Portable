@@ -707,9 +707,35 @@ bool ResourceManager::DoLoadImage(ImageRes *theRes)
 			if (!LoadAlphaGridImage(theRes, aSharedImageRef))
 				return false;
 		}
+
+		// HD replacement: apply the separate alpha image too, or drop HD when it can't be matched
+		if (aGLImage->mHDImage != nullptr)
+		{
+			if (!theRes->mAlphaGridImage.empty())
+				aGLImage->mHDImage.reset();
+			else if (!theRes->mAlphaImage.empty())
+			{
+				std::unique_ptr<ImageLib::Image> aHDAlpha(ImageLib::GetImage("hd/" + theRes->mAlphaImage, true));
+				MemoryImage* aHD = aGLImage->mHDImage.get();
+				if (aHDAlpha != nullptr && aHDAlpha->mWidth == aHD->mWidth && aHDAlpha->mHeight == aHD->mHeight)
+				{
+					uint32_t* aDst = aHD->GetBits();
+					const uint32_t* aSrc = aHDAlpha->mBits.get();
+					const int aSize = aHD->mWidth * aHD->mHeight;
+					for (int i = 0; i < aSize; i++)
+						aDst[i] = (aDst[i] & 0x00FFFFFF) | ((aSrc[i] & 0xFF) << 24);
+					aHD->BitsChanged();
+					aHD->CommitBits();
+				}
+				else
+					aGLImage->mHDImage.reset();
+			}
+		}
 	}
 
 	aGLImage->CommitBits();
+	if (aGLImage->mHDImage != nullptr)
+		aGLImage->mHDBitsChangedCount = aGLImage->mBitsChangedCount;
 	theRes->mImage = aSharedImageRef;
 #ifndef LOW_MEMORY
 	aGLImage->mPurgeBits = theRes->mPurgeBits;

@@ -1778,3 +1778,35 @@ bool MemoryImage::Palletize()
 
 	return true;
 }
+
+bool MemoryImage::HasValidHDImage() const
+{
+	return mHDImage != nullptr && mHDBitsChangedCount == mBitsChangedCount
+		&& mHDImage->mWidth == mWidth * HD_SCALE && mHDImage->mHeight == mHeight * HD_SCALE;
+}
+
+bool MemoryImage::AttachHDImage(const std::string& theFileName)
+{
+	mHDImage.reset();
+	mHDBitsChangedCount = -1;
+
+	if (theFileName.empty() || !ImageLib::HDResourcesAvailable())
+		return false;
+
+	std::unique_ptr<ImageLib::Image> aLoaded(ImageLib::GetImage("hd/" + theFileName, true));
+	if (aLoaded == nullptr)
+		return false;
+
+	if (aLoaded->GetWidth() != mWidth * HD_SCALE || aLoaded->GetHeight() != mHeight * HD_SCALE)
+	{
+		LogErrorLn("HD image 'hd/{}' has size {}x{}, expected {}x{}; ignored", theFileName,
+			aLoaded->GetWidth(), aLoaded->GetHeight(), mWidth * HD_SCALE, mHeight * HD_SCALE);
+		return false;
+	}
+
+	auto aHD = std::make_unique<MemoryImage>(mApp);
+	aHD->SetBits(aLoaded->GetBits(), aLoaded->GetWidth(), aLoaded->GetHeight(), true);
+	mHDImage = std::move(aHD);
+	mHDBitsChangedCount = mBitsChangedCount;
+	return true;
+}

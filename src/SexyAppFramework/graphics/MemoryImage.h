@@ -68,6 +68,16 @@ public:
 	bool					mBitsChanged;
 	SexyAppBase*			mApp;
 
+	// Optional high-resolution replacement used only for the GPU texture (see "hd/" resources).
+	// Valid while mBitsChangedCount == mHDBitsChangedCount; game logic always uses the normal bits.
+	std::unique_ptr<MemoryImage>	mHDImage;
+	int						mHDBitsChangedCount = -1;
+	static constexpr int	HD_SCALE = 2;
+
+	// Loads "hd/<theFileName>" (2x size) if HD resources are present. Returns true if attached.
+	bool					AttachHDImage(const std::string& theFileName);
+	bool					HasValidHDImage() const;
+
 private:
 	void					Init();
 

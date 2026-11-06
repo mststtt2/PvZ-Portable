@@ -1215,6 +1215,12 @@ static bool FastFileExists(std::string_view thePath)
 	return false;
 }
 
+bool ImageLib::HDResourcesAvailable()
+{
+	static const bool sAvailable = FastFileExists("hd/hd.txt");
+	return sAvailable;
+}
+
 static Image* TryLoadByExt(const std::string& theBaseName, std::string_view theExt)
 {
 	for (const auto& [aKnownExt, aLoader] : kImageExts)

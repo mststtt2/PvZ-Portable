@@ -57,6 +57,9 @@ extern bool gIgnoreJPEG2000Alpha;  // I've noticed alpha in jpeg2000's that shou
 
 Image* GetImage(const std::string& theFileName, bool lookForAlphaImage = true);
 
+// True when the game data contains "hd/hd.txt" (marker for 2x HD replacement images under "hd/").
+bool HDResourcesAvailable();
+
 }
 
 #endif //__IMAGELIB_H__
