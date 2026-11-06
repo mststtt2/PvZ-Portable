@@ -1003,6 +1003,11 @@ void MemoryImage::PurgeBits()
 {
 	mPurgeBits = true;
 
+	// HD texture: bits can't be recovered from the (2x) texture and mFilePath may already be
+	// cleared, so keep the normal-resolution bits for CPU users (font scaling, filters, ...).
+	if (mRenderData != nullptr && mRenderData->mScale != 1)
+		return;
+
 	if (mApp->Is3DAccelerated())
 	{
 		// Due to potential render backend threading issues we have to defer the texture creation

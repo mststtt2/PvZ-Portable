@@ -785,10 +785,10 @@ void TextureData::CheckCreateTextures(MemoryImage *theImage)
 		|| (theImage->mRenderFlags & RenderImageFlag_TextureMask) != mImageFlags)
 	{
 		CreateTextures(theImage);
-		if (theImage->mPurgeBits)
+		if (theImage->mPurgeBits && mScale == 1)
 			theImage->PurgeBits();
 	}
-	else if (theImage->mPurgeBits && theImage->mBits != nullptr)
+	else if (theImage->mPurgeBits && theImage->mBits != nullptr && mScale == 1)
 		theImage->PurgeBits();
 }
 
